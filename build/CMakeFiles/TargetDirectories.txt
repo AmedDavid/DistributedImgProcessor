@@ -1,0 +1,6 @@
+/home/david/Documents/Projects/DistributedImgProcessor/build/CMakeFiles/Client.dir
+/home/david/Documents/Projects/DistributedImgProcessor/build/CMakeFiles/Server.dir
+/home/david/Documents/Projects/DistributedImgProcessor/build/CMakeFiles/package.dir
+/home/david/Documents/Projects/DistributedImgProcessor/build/CMakeFiles/package_source.dir
+/home/david/Documents/Projects/DistributedImgProcessor/build/CMakeFiles/edit_cache.dir
+/home/david/Documents/Projects/DistributedImgProcessor/build/CMakeFiles/rebuild_cache.dir
