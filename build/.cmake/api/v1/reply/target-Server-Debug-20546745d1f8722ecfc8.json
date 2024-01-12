@@ -2,7 +2,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "Client"
+			"path" : "Server"
 		}
 	],
 	"backtrace" : 1,
@@ -12,7 +12,7 @@
 		[
 			"add_executable",
 			"target_link_libraries",
-			"include_directories"
+			"target_include_directories"
 		],
 		"files" : 
 		[
@@ -26,19 +26,19 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 10,
+				"line" : 14,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 16,
+				"line" : 21,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 7,
+				"line" : 18,
 				"parent" : 0
 			}
 		]
@@ -153,7 +153,7 @@
 			]
 		}
 	],
-	"id" : "Client::@6890427a1f51a3e7e1df",
+	"id" : "Server::@6890427a1f51a3e7e1df",
 	"link" : 
 	{
 		"commandFragments" : 
@@ -248,8 +248,8 @@
 		],
 		"language" : "CXX"
 	},
-	"name" : "Client",
-	"nameOnDisk" : "Client",
+	"name" : "Server",
+	"nameOnDisk" : "Server",
 	"paths" : 
 	{
 		"build" : ".",
@@ -271,13 +271,13 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "client.cpp",
+			"path" : "server.cpp",
 			"sourceGroupIndex" : 0
 		},
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "client_functions.cpp",
+			"path" : "server_functions.cpp",
 			"sourceGroupIndex" : 0
 		}
 	],

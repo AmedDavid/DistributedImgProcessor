@@ -1,6 +1,11 @@
 #include "server_functions.h"
+#include <iostream>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
-int serverSocket;  // Declare the server socket as a global variable
+int serverSocket;
 
 void initializeServer() {
     // Create a socket
@@ -51,78 +56,145 @@ int acceptClient() {
 
 void handleClients() {
     while (true) {
-        // Accept client connections
         int clientSocket = acceptClient();
 
-        // Create a new thread to handle each client
-        std::thread clientThread(processClient, clientSocket);
-        clientThread.detach();  // Detach the thread to run independently
+        if (clientSocket != -1) {
+            std::thread clientThread(processClient, clientSocket);
+            clientThread.detach();
+        }
     }
 }
 
 void processClient(int clientSocket) {
-    // Your code to handle a single client
-    // Receive image path and processing instructions
-    // Process the image using OpenCV or your own functions
-    // Send the processed image back to the client
-
-    // Example: Receive image path and filter type from the client
-    char buffer[1024];
-    ssize_t bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
-
-    if (bytesReceived <= 0) {
-        std::cerr << "Error receiving data from client." << std::endl;
+    // Receive the image name from the client
+    std::vector<char> imageData(256); // Assuming a maximum of 256 characters
+    ssize_t imageBytesReceived = recv(clientSocket, imageData.data(), imageData.size(), 0);
+    if (imageBytesReceived < 0) {
+        std::cerr << "Error receiving image name from client." << std::endl;
         close(clientSocket);
         return;
     }
 
-    std::string receivedData(buffer, bytesReceived);
-    std::cout << "Received data from client: " << receivedData << std::endl;
+    std::string imageName(imageData.data());
+    std::cout << "Received image name from client: " << imageName << std::endl;
 
-    // For simplicity, let's assume the receivedData contains the image path and filter type
-    std::string imagePath = "/path/to/your/images/" + receivedData;
-    std::string filterType = "gamma";
-    double filterParam = 1.2;  // Example parameter
+    // Receive the filter type and parameter from the client
+    std::vector<char> filterData(256); // Assuming a maximum of 256 characters
+    ssize_t filterBytesReceived = recv(clientSocket, filterData.data(), filterData.size(), 0);
+    if (filterBytesReceived < 0) {
+        std::cerr << "Error receiving filter data from client." << std::endl;
+        close(clientSocket);
+        return;
+    }
 
-    // Process the image
-    cv::Mat originalImage = cv::imread(imagePath);
+    std::istringstream iss(std::string(filterData.data()));
+    std::string filterType;
+    double filterParam;
+    std::string imagePath; // Add this line to store the image path
+
+    // Parse filter data and image path
+    iss >> filterType >> filterParam >> imagePath;
+
+    // Load the image from the provided path
+    cv::Mat originalImage = cv::imread(imagePath, cv::IMREAD_COLOR);
     if (originalImage.empty()) {
         std::cerr << "Error loading the image." << std::endl;
         close(clientSocket);
         return;
     }
 
+    // Apply the requested filter
     cv::Mat processedImage;
     if (filterType == "gamma") {
         processedImage = applyGammaCorrection(originalImage, filterParam);
+    } else if (filterType == "resize") {
+        processedImage = resizeImage(originalImage, filterParam);
+    } else if (filterType == "rotate") {
+        processedImage = rotateImage(originalImage, filterParam);
+    } else if (filterType == "crop") {
+        processedImage = cropImage(originalImage, filterParam);
+    } else if (filterType == "flip") {
+        processedImage = flipImage(originalImage, filterParam);
+    } else if (filterType == "brightness") {
+        processedImage = adjustBrightness(originalImage, filterParam);
+    } else if (filterType == "contrast") {
+        processedImage = adjustContrast(originalImage, filterParam);
+    } else {
+        std::cerr << "Invalid filter type." << std::endl;
+        close(clientSocket);
+        return;
     }
-    // Add more filter cases as needed
 
     // Send the processed image back to the client
     sendImageToClient(clientSocket, processedImage);
+    std::cout << "Processed image sent to the client." << std::endl;
 
     // Close the client socket
     close(clientSocket);
 }
 
 cv::Mat applyGammaCorrection(const cv::Mat &image, double gamma) {
-    // Your implementation of gamma correction using OpenCV or your own functions
     cv::Mat correctedImage;
     cv::pow(image / 255.0, gamma, correctedImage);
     correctedImage *= 255;
     return correctedImage;
 }
 
-void sendImageToClient(int clientSocket, const cv::Mat &image) {
-    // Your code to send the image back to the client
+cv::Mat resizeImage(const cv::Mat &image, double scale) {
+    cv::Mat resizedImage;
+    cv::resize(image, resizedImage, cv::Size(), scale, scale);
+    return resizedImage;
+}
 
-    // Example: Convert the image to a byte array and send it
+cv::Mat rotateImage(const cv::Mat &image, double angle) {
+    cv::Mat rotatedImage;
+    cv::rotate(image, rotatedImage, cv::ROTATE_90_CLOCKWISE);
+    return rotatedImage;
+}
+
+cv::Mat cropImage(const cv::Mat &image, double factor) {
+    cv::Rect cropRegion(image.cols * factor, image.rows * factor, image.cols * (1 - 2 * factor), image.rows * (1 - 2 * factor));
+    cv::Mat croppedImage = image(cropRegion);
+    return croppedImage;
+}
+
+cv::Mat flipImage(const cv::Mat &image, double flipCode) {
+    cv::Mat flippedImage;
+    cv::flip(image, flippedImage, flipCode);
+    return flippedImage;
+}
+
+cv::Mat adjustBrightness(const cv::Mat &image, double factor) {
+    cv::Mat brightenedImage;
+    image.convertTo(brightenedImage, -1, 1.0, factor * 255.0);
+    return brightenedImage;
+}
+
+cv::Mat adjustContrast(const cv::Mat &image, double factor) {
+    cv::Mat contrastedImage;
+    image.convertTo(contrastedImage, -1, factor);
+    return contrastedImage;
+}
+
+void sendImageToClient(int clientSocket, const cv::Mat &image) {
     std::vector<uchar> buffer;
     cv::imencode(".png", image, buffer);
 
-    ssize_t bytesSent = send(clientSocket, buffer.data(), buffer.size(), 0);
-    if (bytesSent != buffer.size()) {
-        std::cerr << "Error sending data to client." << std::endl;
+    ssize_t totalBytesSent = 0;
+    size_t bufferSize = buffer.size();
+
+    while (totalBytesSent < bufferSize) {
+        ssize_t bytesSent = send(clientSocket, buffer.data() + totalBytesSent, bufferSize - totalBytesSent, 0);
+
+        if (bytesSent == -1) {
+            std::cerr << "Error sending data to client: " << strerror(errno) << std::endl;
+            close(clientSocket);
+            return;
+        }
+
+        totalBytesSent += bytesSent;
     }
+
+    std::cout << "Image sent to the client." << std::endl;
 }
 
