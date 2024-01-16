@@ -7,7 +7,6 @@
 #include <sys/socket.h>
 
 int clientSocket;
-
 void connectToServer(const std::string &serverAddress) {
     // Split serverAddress into IP and port
     size_t pos = serverAddress.find(':');
